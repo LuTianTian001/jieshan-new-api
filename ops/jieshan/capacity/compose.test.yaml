@@ -1,0 +1,27 @@
+# Only for a fresh `js-capacity-*` project. Use alongside a private copy of ../compose.yaml.
+networks:
+  default:
+    internal: true
+
+services:
+  new-api:
+    ports: !reset []
+    environment:
+      NODE_NAME: js-capacity-test
+  stream-fixture: &fixture
+    image: python:3.13-alpine@sha256:9ef1a599f863231c3d91e941389bfdc4a2d6070557243d54df1a4e57015b960e
+    cpus: 1.0
+    mem_limit: 256m
+    command: ["python", "-B", "/work/sse.py", "mock"]
+    volumes:
+      - ./sse.py:/work/sse.py:ro
+    read_only: true
+    user: "65534:65534"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    ulimits:
+      nofile: {soft: 8192, hard: 8192}
+  load-client:
+    <<: *fixture
+    cpus: 1.5
+    command: ["python", "-B", "-c", "import time; time.sleep(7200)"]

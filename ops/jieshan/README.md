@@ -1,6 +1,6 @@
-# 介山中转站 · New API 单机试部署
+# 介山中转站 · New API 单机部署
 
-2026-11-26（北京时间）准备。今晚的目标：用 SSH 打开自己的面板，建管理员，拿一把介山签发的 Key 发请求，并在日志里看到它走了哪个渠道、扣了多少测试额度。没有域名、没有现成上游 Key，也可以先试。真实收款留到真实渠道和账务验收后。
+部署在介山网关服务器上，独立运行。先通过 SSH 打开面板；持介山签发的 Key 发请求后，可以在使用日志核对渠道和扣费。公开接入和收款前需要验收真实上游、入口和账单。本站的容量目标是 **1000 条在途文本流**；[容量验收](capacity/README.md)记录了测试负载、实测结果和复测方法。
 
 选用官方发布的 [v1.0.0-rc.51](https://github.com/QuantumNous/new-api/releases/tag/v1.0.0-rc.51)（候选版），固定应用镜像标签。单台 Linux 用 Docker Compose 运行 **New API + PostgreSQL 15 + Redis 7.4**。与[该版本的官方配置](https://github.com/QuantumNous/new-api/blob/v1.0.0-rc.51/docker-compose.yml)相比，数据库就绪才启动面板、密码在服务器生成，面板只绑定 `127.0.0.1:13000`，数据库和缓存都不映射宿主机端口。官方镜像针对 [Linux amd64 / arm64](https://github.com/QuantumNous/new-api/blob/v1.0.0-rc.51/.github/workflows/docker-build.yml) 构建。
 
@@ -40,7 +40,7 @@ docker compose ps
 curl -fsS http://127.0.0.1:13000/api/status
 ```
 
-预期：三个服务均 healthy，状态 JSON 的 `success` 为 `true`，首次启动还没有管理员。`.env` 保存 4 个独立随机值，不要重建；重跑生成脚本会拒绝覆盖。如果服务器的 13000 被占，启动前改 `.env` 的 `APP_PORT`，并相应改本手册里的**服务器目标端口**。拉镜像失败先查服务器 DNS 和镜像仓库连通性，不用 `latest` 或陌生镜像替代。服务未就绪时在服务器本地看 `docker compose logs --tail=60 new-api postgres redis`；不要分享未经脱敏的配置和日志。应用、PostgreSQL、Redis 的初始试运行预算分别为 2 CPU / 1536 MiB、1 CPU / 768 MiB 和 0.5 CPU / 384 MiB。用 `docker stats --no-stream` 看实际消耗；这些上限不代表容量承诺。
+预期：三个服务均 healthy，状态 JSON 的 `success` 为 `true`，首次启动还没有管理员。`.env` 保存 4 个独立随机值，不要重建；重跑生成脚本会拒绝覆盖。如果服务器的 13000 被占，启动前改 `.env` 的 `APP_PORT`，并相应改本手册里的**服务器目标端口**。拉镜像失败先查服务器 DNS 和镜像仓库连通性，不用 `latest` 或陌生镜像替代。服务未就绪时在服务器本地看 `docker compose logs --tail=60 new-api postgres redis`；不要分享未经脱敏的配置和日志。应用、PostgreSQL、Redis 的资源上限分别为 **5 vCPU / 4 GiB、3 vCPU / 2 GiB、0.5 vCPU / 512 MiB**。数据库连接池最多 64 个、最多保留 16 个空闲连接；长流等待上游时不需要各占一个数据库连接。Go 内存软目标为 3 GiB，Redis 客户端池为 32。
 
 ## 2. 通过 SSH 隧道建管理员
 
@@ -99,7 +99,7 @@ unset js_test_key
 sha256sum -c SHA256SUMS
 mkdir -m 700 data
 tar -C data -xzf data.tar.gz
-docker compose up -d --wait postgres redis
+ docker compose up -d --wait postgres redis
 docker compose exec -T postgres pg_restore --exit-on-error --single-transaction --no-owner --no-acl \
   -U jieshan -d jieshan_newapi < db.dump
 docker compose up -d --wait new-api
@@ -107,4 +107,4 @@ docker compose up -d --wait new-api
 
 若备份来自 HTTPS 站，恢复试机走 SSH 隧道时，只在**试机的 `.env` 副本**上把 Secure 改回 `false` 并清空可信 URL，保留原密钥。登录检查账户、余额、渠道和一次历史请求。试部署暂停用 `docker compose stop`，恢复用 `docker compose start`。升级先备份、记录镜像摘要、在隔离试机验库；升级迁移过数据库后，回退须配套恢复升级前的数据库和文件，不能只换旧镜像。
 
-准备阶段已用官方 Compose 结构规范检查配置，并在本机验证初始化脚本不会覆写密钥、模拟渠道能分别返回 200 和 429。本机没有 Docker 引擎；镜像能否从目标服务器拉取、三容器联通、New API 账务以及备份恢复均在服务器上验收。
+已在目标主机用模拟上游验证非流式请求和一次 `429` 切换，基于同机独立副本进行流式容量验收。恢复演练、公网入口、真实上游配额与支付到账仍需单独验证。
