@@ -1,0 +1,9 @@
+# Copy to compose.override.yaml on the server, after checking the public
+# origin and the TCP peer seen inside the app. Docker Compose loads that name
+# automatically next to compose.yaml, including on future deployments.
+services:
+  new-api:
+    environment:
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_TRUSTED_URL: "https://panel.example.com"
+      TRUSTED_PROXIES: "172.20.0.1"

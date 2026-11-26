@@ -3,3 +3,4 @@
 *.py text eol=lf
 *.jsonl text eol=lf
 Caddyfile.example text eol=lf
+*.conf.example text eol=lf

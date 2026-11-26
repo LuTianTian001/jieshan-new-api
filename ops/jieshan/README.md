@@ -1,6 +1,6 @@
 # 介山中转站 · New API 单机部署
 
-部署在介山网关服务器上，独立运行。先通过 SSH 打开面板；持介山签发的 Key 发请求后，可以在使用日志核对渠道和扣费。公开接入和收款前需要验收真实上游、入口和账单。本站的容量目标是 **1000 条在途文本流**；[容量验收](capacity/README.md)记录了测试负载、实测结果和复测方法。
+部署在介山网关服务器上，独立运行。首次初始化走 SSH；启用正式站点后，用户通过 HTTPS 打开面板，客户端用同一域名的 `/v1`。对外售卖前，还要用真实上游验证模型、扣费和到账。本站的容量目标是 **1000 条在途文本流**；[容量验收](capacity/README.md)记录了测试负载、实测结果和复测方法。
 
 选用官方发布的 [v1.0.0-rc.51](https://github.com/QuantumNous/new-api/releases/tag/v1.0.0-rc.51)（候选版），固定应用镜像标签。单台 Linux 用 Docker Compose 运行 **New API + PostgreSQL 15 + Redis 7.4**。与[该版本的官方配置](https://github.com/QuantumNous/new-api/blob/v1.0.0-rc.51/docker-compose.yml)相比，数据库就绪才启动面板、密码在服务器生成，面板只绑定 `127.0.0.1:13000`，数据库和缓存都不映射宿主机端口。官方镜像针对 [Linux amd64 / arm64](https://github.com/QuantumNous/new-api/blob/v1.0.0-rc.51/.github/workflows/docker-build.yml) 构建。
 
@@ -82,21 +82,28 @@ unset js_test_key
 
 ## 4. 准备公开访问时才接域名
 
-先完成管理员初始化、关掉公开注册和模拟渠道，再把域名 DNS 指向服务器，检查 A/AAAA 与实际入口一致。复用正在占用 80/443 的 Web 服务，在现有配置里增加**一个站点**；不要覆盖别的站点。没有域名就继续用 SSH 隧道。第一阶段无需 HTTPS 代理。
+先完成管理员初始化、关掉公开注册和模拟渠道，随后准备独立站点，把域名 DNS 指向服务器，检查 A/AAAA 与实际入口一致。复用正在占用 80/443 的 Web 服务，在现有配置里增加**一个站点**；不要覆盖别的站点。首次初始化只走 SSH 隧道；开放公网后，面板登录和下游调用都走 HTTPS。
 
 - 如果 Caddy 或 Nginx **直接运行在宿主机**，转发到 `127.0.0.1:13000`。Caddy 示例见包内 `Caddyfile.example`，替换示例域名和实际端口；先校验配置再重载。Caddy 默认支持 WebSocket 和 SSE 即时输出。[Caddy 反向代理说明](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy)
 - 宝塔/1Panel 或现有 Nginx：先辨认反代是宿主机进程还是容器。宿主机 Nginx 保留 `Host`、转发协议与客户端 IP，开启 WebSocket，关闭代理缓冲并为长请求留出读取时间。**另一只容器的 `127.0.0.1` 指向它自己**；这种情况下单建共享入口网络，只接反代和 `new-api`，目标用容器网络名 `new-api:3000`，不把数据库、Redis 接到入口网络。
 - 激活公网代理前：在后台填写站点服务器地址；编辑已有 `.env`，把 `SESSION_COOKIE_SECURE` 改为 `true`，`SESSION_COOKIE_TRUSTED_URL` 改为精确的 `https://实际域名`（无路径、尾斜线、通配符）。把 `TRUSTED_PROXIES` 设为应用实际看到的前置代理地址，宿主机反代转进 Docker 时可能是桥的网关 IP；不确定时暂留 `none`，先核对再信任，否则按 IP 限流可能把所有用户当成同一个地址。[该版本的认证说明](https://github.com/QuantumNous/new-api/blob/v1.0.0-rc.51/docs/authentication.md)
 - 让变量生效：`docker compose config --quiet`，然后 `docker compose up -d --no-deps --wait new-api`。打开真实 HTTPS 域名，测试登录、刷新后仍登录、退出，以及通过公开 `/v1` 发一条流式请求。数据库和 Redis 始终不需要开放端口。
 
+**介山正式站的做法**：保留原 `.env` 和密钥，使用 [compose.https.example.yaml](compose.https.example.yaml) 作为生产目录的 `compose.override.yaml`。替换示例域名，核实应用实际看到的代理 TCP 地址；普通 `docker compose` 命令会自动加载该文件。显式使用 `-f compose.yaml` 时，必须追加 `-f compose.override.yaml` 才能启用生产设置。
+
+宿主机 Nginx 配置见 [nginx-panel.conf.example](nginx-panel.conf.example)。先为新域名单建只提供 `/.well-known/acme-challenge/` 的 HTTP 站点，隔离该域名的其他流量，保留原默认站点。确认 A/AAAA 指向预期入口后，执行 `certbot certonly --webroot -w /var/www/letsencrypt --cert-name panel.example.com -d panel.example.com`；取得证书后才启用完整配置。给新证书安装仅匹配其 `RENEWED_LINEAGE` 的 deploy hook，执行 `nginx -t && systemctl reload nginx`，用 `certbot renew --cert-name panel.example.com --dry-run --run-deploy-hooks` 演练续期。上线时从外网核对首页和 `/api/status` 的名称、站点地址；无 Key 的 `/v1/models` 应返回 `401`，旧网关仍应可用。
+
 ## 5. 备份和恢复
 
-在测试请求都结束、没有充值或写入的时间执行 `bash backup.sh`。它在权限受限的 `backups/` 里保存 PostgreSQL 自定义格式备份、`/data` 文件、原 `.env`、Compose 和实际镜像摘要；只有带 `COMPLETE` 的目录才算成功。`pg_restore --list` 和校验和只能验证备份可读，不能代替恢复演练。备份含渠道凭证，异机保存时加密。它不保存 Redis 的临时限流/缓存、应用文本日志或反代证书；使用日志和账户余额保存在此次备份的 PostgreSQL 中。
+在测试请求都结束、没有充值或写入的时间执行 `bash backup.sh`。它在权限受限的 `backups/` 里保存 PostgreSQL 自定义格式备份、`/data` 文件、原 `.env`、`compose.yaml`、已启用的 `compose.override.yaml` 和实际镜像摘要；只有带 `COMPLETE` 的目录才算成功。`pg_restore --list` 和校验和只能验证备份可读，不能代替恢复演练。备份含渠道凭证，异机保存时加密。它不保存 Redis 的临时限流/缓存、应用文本日志或反代证书；使用日志和账户余额保存在此次备份的 PostgreSQL 中。
 
 第一次收款或升级前，用**另一台隔离试机**恢复一次：只允许本机访问，不向真实上游或支付网关出站。将一个完整备份目录中的文件（含隐藏的 `.env`）复制到试机的全新私有目录，以该目录为工作目录，使用记录的镜像版本和摘要，确认本机没有同名 Compose 项目或旧 PostgreSQL 卷。按顺序校验并恢复，任一步失败就停下排查：
 
 ```bash
 sha256sum -c SHA256SUMS
+# Only on the isolated HTTP recovery host: save the public override outside
+# Compose's default file names before starting any container.
+if [ -f compose.override.yaml ]; then mv -- compose.override.yaml compose.https.saved.yaml; fi
 mkdir -m 700 data
 tar -C data -xzf data.tar.gz
  docker compose up -d --wait postgres redis
@@ -107,4 +114,4 @@ docker compose up -d --wait new-api
 
 若备份来自 HTTPS 站，恢复试机走 SSH 隧道时，只在**试机的 `.env` 副本**上把 Secure 改回 `false` 并清空可信 URL，保留原密钥。登录检查账户、余额、渠道和一次历史请求。试部署暂停用 `docker compose stop`，恢复用 `docker compose start`。升级先备份、记录镜像摘要、在隔离试机验库；升级迁移过数据库后，回退须配套恢复升级前的数据库和文件，不能只换旧镜像。
 
-已在目标主机用模拟上游验证非流式请求和一次 `429` 切换，基于同机独立副本进行流式容量验收。恢复演练、公网入口、真实上游配额与支付到账仍需单独验证。
+已在目标主机用模拟上游验证非流式请求和一次 `429` 切换，基于同机独立副本进行流式容量验收。公网入口可达和真实上游能够供货是两项独立验收；每次升级分别检查。
