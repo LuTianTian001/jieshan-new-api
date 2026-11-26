@@ -104,7 +104,7 @@ export function PublicHeader(props: PublicHeaderProps) {
       src={systemLogo}
       loading={loading}
       logoLoaded={logoLoaded}
-      className='size-full rounded-lg object-contain'
+      className='size-full rounded-none object-contain'
     />
   )
   if (customLogo) logoContent = customLogo

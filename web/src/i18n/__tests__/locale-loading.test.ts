@@ -31,6 +31,9 @@ test('a Chinese visitor gets the selected dictionary, keeps the English fallback
   await config.i18nReady
   const i18n = config.default
   expect(i18n.t('Unified API Gateway for')).toBe('统一 API 网关，服务于')
+  expect(i18n.t('One API endpoint and one key for multiple AI models.')).toBe(
+    '一个 API 地址，一枚密钥，调用多个 AI 模型。'
+  )
   expect(i18n.hasResourceBundle('fr', 'translation')).toBe(false)
   for (const [language, label] of [
     ['zhTW', '返回登入'],

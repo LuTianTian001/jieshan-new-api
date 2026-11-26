@@ -22,7 +22,11 @@ For commercial licensing, please contact support@quantumnous.com
 
 // System Configuration Defaults
 export const DEFAULT_SYSTEM_NAME = 'New API'
-export const DEFAULT_LOGO = '/logo.png'
+export const DEFAULT_LOGO = '/jieshan-seal.svg'
+export const DEFAULT_FAVICON = '/jieshan-seal-small.svg'
+
+// The Chinese motto is part of the mark, including in non-Chinese interfaces.
+export const JIESHAN_MOTTO = '一令出，群山应'
 
 // LocalStorage Keys
 export const STORAGE_KEYS = {

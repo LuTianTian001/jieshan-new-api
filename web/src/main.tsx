@@ -22,7 +22,8 @@ import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 
 import { installBuildMetadata } from '@/lib/build-metadata'
-import { applyFaviconToDom } from '@/lib/dom-utils'
+import { DEFAULT_LOGO } from '@/lib/constants'
+import { applyFaviconToDom, applySiteTitle } from '@/lib/dom-utils'
 import '@/lib/dayjs'
 import { initializeFrontendCache } from '@/lib/frontend-cache'
 import { createAppQueryClient } from '@/lib/query-client'
@@ -71,16 +72,11 @@ if (!rootElement) {
 ;(function initSystemBranding() {
   try {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
-    const apply = (name: string) => {
-      document.title = name
-      const metaTitle = document.querySelector(
-        'meta[name="title"]'
-      ) as HTMLMetaElement | null
-      if (metaTitle) metaTitle.setAttribute('content', name)
-    }
     // Cache-first
     const cached = readCachedStatus()
-    if (cached?.system_name) apply(cached.system_name as string)
+    if (typeof cached?.system_name === 'string' && cached.system_name) {
+      applySiteTitle(cached.system_name, window.location.pathname)
+    }
     if (cached?.logo) applyFaviconToDom(cached.logo as string)
 
     // Background refresh through the shared cache. This primes ['status']
@@ -90,8 +86,10 @@ if (!rootElement) {
     queryClient
       .ensureQueryData(statusQueryOptions)
       .then((s) => {
-        if (s?.system_name) apply(s.system_name as string)
-        if (s?.logo) applyFaviconToDom(s.logo as string)
+        if (typeof s?.system_name === 'string' && s.system_name) {
+          applySiteTitle(s.system_name, window.location.pathname)
+        }
+        if (s) applyFaviconToDom((s.logo as string) || DEFAULT_LOGO)
       })
       .catch(() => {
         /* empty */

@@ -6,6 +6,8 @@ import { pluginReact } from '@rsbuild/plugin-react'
 import { pluginTailwindcss } from '@rsbuild/plugin-tailwindcss'
 import { tanstackRouter } from '@tanstack/router-plugin/rspack'
 
+import { JIESHAN_MOTTO } from './src/lib/constants'
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ envMode }) => {
@@ -64,7 +66,11 @@ export default defineConfig(({ envMode }) => {
     },
     html: {
       template: './index.html',
-      favicon: './public/favicon.ico',
+      favicon: './public/jieshan-seal-small.svg',
+      templateParameters: {
+        jieshanName: '介山AI',
+        jieshanMotto: JIESHAN_MOTTO,
+      },
     },
     server: {
       host: '0.0.0.0',

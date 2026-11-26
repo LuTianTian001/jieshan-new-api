@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">介山AI · 山门令 · 朱漆骨白</title>
+  <path fill="#682F28" d="M21 8 H235 L248 21 V235 L235 248 H21 L8 235 V21 Z"/>
+  <path d="M29 18 H227 L238 29 V227 L227 238 H29 L18 227 V29 Z" fill="none" stroke="#985F4E" stroke-width="2.6"/>
+  <g fill="#EBDBC1">
+    <path d="M117 36 L153 45 L151 51 L143 52 C121 84 87 111 45 129 L30 130 L39 120 C76 94 101 62 113 41 Z"/>
+    <path d="M136 46 C155 72 185 95 225 105 L221 112 L210 114 L197 131 C166 117 147 93 132 62 L129 53 Z"/>
+    <path d="M90 118 L121 122 L119 128 L114 130 L113 148 C111 182 90 205 53 218 L41 219 L50 211 C76 194 87 171 88 146 L88 130 L84 125 Z"/>
+    <path d="M145 119 L175 123 L173 129 L168 131 L168 208 L159 214 L145 216 L141 211 L143 194 L143 137 L139 126 Z"/>
+  </g>
+</svg>

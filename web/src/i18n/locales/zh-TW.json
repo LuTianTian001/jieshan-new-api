@@ -4484,6 +4484,7 @@
     "Ollama Models": "Ollama 模型",
     "On or off": "開關",
     "One API": "One API",
+    "One API endpoint and one key for multiple AI models.": "一個 API 位址，一把金鑰，呼叫多個 AI 模型。",
     "One domain per line": "每行一個域名",
     "One domain per line (only used when domain restriction is enabled)": "每行一個域名 (僅在啟用域名限制時使用)",
     "One IP or CIDR range per line": "每行一個 IP 或 CIDR 範圍",

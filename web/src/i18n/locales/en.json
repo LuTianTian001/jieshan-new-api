@@ -4484,6 +4484,7 @@
     "Ollama Models": "Ollama Models",
     "On or off": "On or off",
     "One API": "One API",
+    "One API endpoint and one key for multiple AI models.": "One API endpoint and one key for multiple AI models.",
     "One domain per line": "One domain per line",
     "One domain per line (only used when domain restriction is enabled)": "One domain per line (only used when domain restriction is enabled)",
     "One IP or CIDR range per line": "One IP or CIDR range per line",

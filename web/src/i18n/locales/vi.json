@@ -4484,6 +4484,7 @@
     "Ollama Models": "Mô hình Ollama",
     "On or off": "Bật hoặc tắt",
     "One API": "Một API",
+    "One API endpoint and one key for multiple AI models.": "Một địa chỉ API và một khóa để gọi nhiều mô hình AI.",
     "One domain per line": "Một tên miền mỗi dòng",
     "One domain per line (only used when domain restriction is enabled)": "Mỗi dòng một tên miền (chỉ được sử dụng khi hạn chế tên miền được bật)",
     "One IP or CIDR range per line": "Một IP hoặc dải CIDR mỗi dòng",

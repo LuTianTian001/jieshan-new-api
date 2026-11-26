@@ -19,6 +19,11 @@
          Keep in sync with ThemeProvider and THEME_STORAGE_KEYS.mode. -->
     <script>
       ;(function () {
+        // Show the fork's name and home motto while the app bundles load.
+        var name = '<%= jieshanName %>'
+        var title = location.pathname === '/' ? name + ' · <%= jieshanMotto %>' : name
+        document.title = title
+        document.querySelector('meta[name="title"]').content = title
         var theme = 'system'
         try {
           theme = localStorage.getItem('newapi:theme:v1:mode') || 'system'

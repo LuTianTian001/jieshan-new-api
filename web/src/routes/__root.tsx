@@ -23,6 +23,7 @@ import {
   Outlet,
   redirect,
   useNavigate,
+  useRouterState,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { useEffect } from 'react'
@@ -41,6 +42,7 @@ import {
   clearAuthentication,
 } from '@/lib/auth-session'
 import { subscribeAuthSessionEvents } from '@/lib/auth-session-sync'
+import { applySiteTitle } from '@/lib/dom-utils'
 import { resolveLegacyRoute } from '@/lib/legacy-route'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -49,7 +51,13 @@ function RootComponent() {
   const queryClient = useQueryClient()
 
   // Load system configuration (logo, system name, etc.) from backend
-  useSystemConfig({ autoLoad: true })
+  const { systemName, loading } = useSystemConfig({ autoLoad: true })
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  useEffect(() => {
+    if (!loading) applySiteTitle(systemName, pathname)
+  }, [loading, systemName, pathname])
 
   useEffect(() => {
     const aff = new URLSearchParams(window.location.search).get('aff')?.trim()

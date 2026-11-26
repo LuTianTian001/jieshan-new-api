@@ -4484,6 +4484,7 @@
     "Ollama Models": "Ollamaモデル",
     "On or off": "オン/オフ",
     "One API": "1つのAPI",
+    "One API endpoint and one key for multiple AI models.": "1つの API エンドポイントと1つのキーで、複数の AI モデルを呼び出せます。",
     "One domain per line": "1行に1つのドメイン",
     "One domain per line (only used when domain restriction is enabled)": "1行に1つのドメイン (ドメイン制限が有効な場合のみ使用されます)",
     "One IP or CIDR range per line": "1行に1つのIPまたはCIDR範囲",

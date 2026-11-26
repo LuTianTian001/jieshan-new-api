@@ -16,16 +16,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { DEFAULT_FAVICON, DEFAULT_LOGO, JIESHAN_MOTTO } from './constants'
+
+export function applySiteTitle(name: string, pathname: string) {
+  const title = pathname === '/' ? `${name} · ${JIESHAN_MOTTO}` : name
+  document.title = title
+  document.querySelector('meta[name="title"]')?.setAttribute('content', title)
+}
+
 export function applyFaviconToDom(url: string) {
   if (typeof document === 'undefined' || !url) return
   try {
-    const next = new URL(url, window.location.href).href
+    const icon = url === DEFAULT_LOGO ? DEFAULT_FAVICON : url
+    const next = new URL(icon, window.location.href).href
     const existing =
       document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')
     if (existing.length === 1 && existing[0].href === next) return
     const link = document.createElement('link')
     link.rel = 'icon'
-    link.href = url
+    link.href = icon
     existing.forEach((l) => l.remove())
     document.head.appendChild(link)
   } catch {
