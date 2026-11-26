@@ -138,6 +138,7 @@ export interface SystemStatus {
     [key: string]: unknown
   }
   // Allow direct access to common properties
+  custom_home_enabled?: boolean
   version?: string
   system_name?: string
   logo?: string

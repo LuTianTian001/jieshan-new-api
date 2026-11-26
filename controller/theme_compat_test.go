@@ -44,4 +44,13 @@ func TestGetStatusAdvertisesDefaultDashboard(t *testing.T) {
 	require.NoError(t, common.Unmarshal(response.Body.Bytes(), &payload))
 	assert.True(t, payload.Success)
 	assert.Equal(t, "default", payload.Data["theme"])
+	assert.Equal(t, false, payload.Data["custom_home_enabled"])
+	common.OptionMap["HomePageContent"] = "# Home"
+	response = httptest.NewRecorder()
+	context, _ = gin.CreateTestContext(response)
+	context.Request = httptest.NewRequest(http.MethodGet, "/api/status", nil)
+	GetStatus(context)
+	require.NoError(t, common.Unmarshal(response.Body.Bytes(), &payload))
+	assert.Equal(t, true, payload.Data["custom_home_enabled"])
+	assert.NotContains(t, response.Body.String(), "# Home")
 }

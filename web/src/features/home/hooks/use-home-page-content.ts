@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react'
 
 import { isHttpUrl } from '@/lib/content-format'
 import { handleServerError } from '@/lib/handle-server-error'
+import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getHomePageContent } from '../api'
 import type { HomePageContentResult } from '../types'
@@ -31,41 +32,50 @@ const STORAGE_KEY = 'home_page_content'
  * Hook to load and manage custom home page content
  * Supports both Markdown/HTML content and iframe URLs
  */
-export function useHomePageContent(): HomePageContentResult {
-  const [content, setContent] = useState<string>('')
-  const [isLoaded, setIsLoaded] = useState(false)
+export function useHomePageContent(
+  customHomeEnabled?: boolean | null
+): HomePageContentResult {
+  // null means never resolved; '' means the server chose the default page.
+  const [snapshot, setSnapshot] = useState<string | null>(() => {
+    if (customHomeEnabled === false) return null
+    try {
+      return localStorage.getItem(STORAGE_KEY)
+    } catch {
+      return null
+    }
+  })
 
   useEffect(() => {
+    // The shared status request is still pending. An older server resolves
+    // to undefined instead, in which case the content endpoint is authoritative.
+    if (customHomeEnabled === null) return
+    if (customHomeEnabled === false) {
+      setSnapshot(null)
+      try {
+        localStorage.removeItem(STORAGE_KEY)
+      } catch {
+        /* optional cache */
+      }
+      return
+    }
     let mounted = true
 
     const loadContent = async () => {
-      // Load from localStorage first for immediate display
-      const cached = localStorage.getItem(STORAGE_KEY)
-      if (cached && mounted) {
-        setContent(cached)
-      }
-
       try {
-        const response = await getHomePageContent()
-        const { success, data } = response
-
+        const response = requireServerSuccess(await getHomePageContent())
         if (!mounted) return
-
-        if (success && data) {
-          setContent(data)
-          localStorage.setItem(STORAGE_KEY, data)
-        } else {
-          // Clear content if API returns empty
-          setContent('')
-          localStorage.removeItem(STORAGE_KEY)
+        const fresh = response.data ?? ''
+        setSnapshot(fresh)
+        try {
+          if (fresh) localStorage.setItem(STORAGE_KEY, fresh)
+          else localStorage.removeItem(STORAGE_KEY)
+        } catch {
+          /* The fresh result still renders without persistence. */
         }
       } catch (error) {
         if (!mounted) return
         handleServerError(error, i18next.t('Failed to load home page content'))
-      } finally {
-        if (mounted) {
-          setIsLoaded(true)
-        }
+        setSnapshot((previous) => previous ?? '')
       }
     }
 
@@ -74,9 +84,12 @@ export function useHomePageContent(): HomePageContentResult {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [customHomeEnabled])
 
-  const isUrl = isHttpUrl(content)
+  if (customHomeEnabled === false) {
+    return { content: '', isLoaded: true, isUrl: false }
+  }
+  const content = snapshot ?? ''
 
-  return { content, isLoaded, isUrl }
+  return { content, isLoaded: snapshot !== null, isUrl: isHttpUrl(content) }
 }
