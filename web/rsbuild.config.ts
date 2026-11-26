@@ -6,7 +6,7 @@ import { pluginReact } from '@rsbuild/plugin-react'
 import { pluginTailwindcss } from '@rsbuild/plugin-tailwindcss'
 import { tanstackRouter } from '@tanstack/router-plugin/rspack'
 
-import { JIESHAN_MOTTO } from './src/lib/constants'
+import { JIESHAN_MOTTO, JIESHAN_SEAL_REVISION } from './src/lib/constants'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -83,6 +83,7 @@ export default defineConfig(({ envMode }) => {
       target: 'web',
       distPath: {
         root: 'dist',
+        favicon: `brand/${JIESHAN_SEAL_REVISION}`,
       },
       // Rely on Rsbuild default legalComments ("linked" → per-chunk *.LICENSE.txt) in all modes.
       // Do not set "none" in production: that strips minifier-preserved third-party notices and
