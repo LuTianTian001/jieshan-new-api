@@ -1,0 +1,89 @@
+name: jieshan-new-api
+
+x-log-options: &log-options
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  new-api:
+    # Matches upstream commit c9c6da2786b6a0912215127e78e28fbc6650c85f.
+    image: "${NEW_API_IMAGE:-calciumion/new-api:v1.0.0-rc.51@sha256:d6effcdbc58175494765c0cc5954bdacb2300516eec79ba1a9c61f9b9fae7b49}"
+    cpus: 2.0
+    mem_limit: 1536m
+    restart: unless-stopped
+    logging: *log-options
+    command: ["--log-dir", "/app/logs"]
+    ports:
+      - "127.0.0.1:${APP_PORT:-13000}:3000"
+    volumes:
+      - ./data:/data
+      - ./logs:/app/logs
+    environment:
+      TZ: Asia/Shanghai
+      NODE_NAME: jieshan-01
+      SQL_DSN: "postgresql://jieshan:${PG_PASSWORD:?Run init-env.sh first}@postgres:5432/jieshan_newapi?sslmode=disable"
+      REDIS_CONN_STRING: "redis://:${REDIS_PASSWORD:?Run init-env.sh first}@redis:6379/0"
+      SESSION_SECRET: "${SESSION_SECRET:?Run init-env.sh first}"
+      CRYPTO_SECRET: "${CRYPTO_SECRET:?Run init-env.sh first}"
+      SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:?Run init-env.sh first}"
+      SESSION_COOKIE_TRUSTED_URL: "${SESSION_COOKIE_TRUSTED_URL:-}"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-none}"
+      DEFAULT_LANGUAGE: zh-CN
+      ERROR_LOG_ENABLED: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -q -O - http://127.0.0.1:3000/api/status |
+          grep -Eq '"success"[[:space:]]*:[[:space:]]*true'
+      interval: 10s
+      timeout: 5s
+      retries: 9
+      start_period: 45s
+
+  postgres:
+    image: postgres:15-alpine@sha256:e18480a22d6e48f4d816a6696769b1ec09ac73a824c5649e49c7d8b684913f3d
+    cpus: 1.0
+    mem_limit: 768m
+    restart: unless-stopped
+    logging: *log-options
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: jieshan
+      POSTGRES_DB: jieshan_newapi
+      POSTGRES_PASSWORD: "${PG_PASSWORD:?Run init-env.sh first}"
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -q -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7.4-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
+    cpus: 0.5
+    mem_limit: 384m
+    restart: unless-stopped
+    logging: *log-options
+    volumes:
+      - redis_data:/data
+    environment:
+      REDISCLI_AUTH: "${REDIS_PASSWORD:?Run init-env.sh first}"
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?Run init-env.sh first}", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD-SHELL", 'test "$$(redis-cli --raw PING)" = PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pg_data:
+  redis_data:

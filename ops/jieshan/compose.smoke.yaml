@@ -1,0 +1,20 @@
+# Optional simulated suppliers. No host ports, upstream keys or external API calls.
+x-mock: &mock
+  image: python:3.13-alpine
+  profiles: [smoke]
+  command: ["python", "-B", "/opt/mock.py"]
+  volumes:
+    - ./mock-upstream.py:/opt/mock.py:ro
+  read_only: true
+  user: "65534:65534"
+  cap_drop: [ALL]
+
+services:
+  mock-ok:
+    <<: *mock
+    environment:
+      MOCK_MODE: ok
+  mock-limited:
+    <<: *mock
+    environment:
+      MOCK_MODE: limited

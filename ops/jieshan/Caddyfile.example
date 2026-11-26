@@ -1,0 +1,5 @@
+# Only for Caddy running directly on the Docker host. Replace with a real domain.
+# Add this site block to the existing configuration; keep its other sites intact.
+api.example.com {
+    reverse_proxy 127.0.0.1:13000
+}
